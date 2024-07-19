@@ -17,7 +17,8 @@
   },
   "scripts": {
     "start": "cds-serve",
-    "watch-incidents": "cds watch --open incidents/webapp/index.html?sap-ui-xx-viewCache=false"
+    "watch-incidents": "cds watch --open incidents/webapp/index.html?sap-ui-xx-viewCache=false",
+    "watch-incidents-flp": "cds watch --open launchpage.html#Shell-home"
   },
   "sapux": [
     "app/incidents"
