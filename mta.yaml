@@ -1,53 +1,96 @@
-_schema-version: '3.1'
+_schema-version: "3.1"
 ID: jg-cap-srv-fiori
+description: A simple CAP project.
 version: 1.0.0
-description: "A simple CAP project."
+modules:
+- name: jg-cap-srv-fiori-srv
+  type: nodejs
+  path: gen/srv
+  requires:
+  - name: jg-cap-srv-fiori-db
+  - name: jg-cap-srv-fiori-auth
+  provides:
+  - name: srv-api
+    properties:
+      srv-url: ${default-url}
+  parameters:
+    buildpack: nodejs_buildpack
+    readiness-health-check-http-endpoint: /health
+    readiness-health-check-type: http
+  build-parameters:
+    builder: npm
+- name: jg-cap-srv-fiori-db-deployer
+  type: hdb
+  path: gen/db
+  requires:
+  - name: jg-cap-srv-fiori-db
+  parameters:
+    buildpack: nodejs_buildpack
+- name: jg-cap-srv-fiori-destination-content
+  type: com.sap.application.content
+  requires:
+  - name: jg-cap-srv-fiori-destination-service
+    parameters:
+      content-target: true
+  - name: jg-cap-srv-fiori_html_repo_host
+    parameters:
+      service-key:
+        name: jg-cap-srv-fiori_html_repo_host-key
+  - name: jg-cap-srv-fiori-auth
+    parameters:
+      service-key:
+        name: jg-cap-srv-fiori-auth-key
+  parameters:
+    content:
+      instance:
+        destinations:
+        - Name: incidents_jg_cap_srv_fiori_html_repo_host
+          ServiceInstanceName: jg-cap-srv-fiori-html5-app-host-service
+          ServiceKeyName: jg-cap-srv-fiori_html_repo_host-key
+          sap.cloud.service: incidents
+        - Authentication: OAuth2UserTokenExchange
+          Name: incidents_jg_cap_srv_fiori_auth
+          ServiceInstanceName: jg-cap-srv-fiori-auth
+          ServiceKeyName: jg-cap-srv-fiori-auth-key
+          sap.cloud.service: incidents
+        existing_destinations_policy: ignore
+  build-parameters:
+    no-source: true
+resources:
+- name: jg-cap-srv-fiori-db
+  type: com.sap.xs.hdi-container
+  parameters:
+    service: hana
+    service-plan: hdi-shared
+- name: jg-cap-srv-fiori-auth
+  type: org.cloudfoundry.managed-service
+  parameters:
+    config:
+      tenant-mode: dedicated
+      xsappname: jg-cap-srv-fiori-${org}-${space}
+    path: ./xs-security.json
+    service: xsuaa
+    service-plan: application
+- name: jg-cap-srv-fiori-destination-service
+  type: org.cloudfoundry.managed-service
+  parameters:
+    config:
+      HTML5Runtime_enabled: true
+      version: 1.0.0
+    service: destination
+    service-name: jg-cap-srv-fiori-destination-service
+    service-plan: lite
+- name: jg-cap-srv-fiori_html_repo_host
+  type: org.cloudfoundry.managed-service
+  parameters:
+    service: html5-apps-repo
+    service-name: jg-cap-srv-fiori-html5-app-host-service
+    service-plan: app-host
 parameters:
   enable-parallel-deployments: true
 build-parameters:
   before-all:
-    - builder: custom
-      commands:
-        - npm ci
-        - npx cds build --production
-modules:
-  - name: jg-cap-srv-fiori-srv
-    type: nodejs
-    path: gen/srv
-    parameters:
-      buildpack: nodejs_buildpack
-      readiness-health-check-type: http
-      readiness-health-check-http-endpoint: /health
-    build-parameters:
-      builder: npm
-    provides:
-      - name: srv-api # required by consumers of CAP services (e.g. approuter)
-        properties:
-          srv-url: ${default-url}
-    requires:
-      - name: jg-cap-srv-fiori-db
-      - name: jg-cap-srv-fiori-auth
-
-  - name: jg-cap-srv-fiori-db-deployer
-    type: hdb
-    path: gen/db
-    parameters:
-      buildpack: nodejs_buildpack
-    requires:
-      - name: jg-cap-srv-fiori-db
-
-resources:
-  - name: jg-cap-srv-fiori-db
-    type: com.sap.xs.hdi-container
-    parameters:
-      service: hana
-      service-plan: hdi-shared
-  - name: jg-cap-srv-fiori-auth
-    type: org.cloudfoundry.managed-service
-    parameters:
-      service: xsuaa
-      service-plan: application
-      path: ./xs-security.json
-      config:
-        xsappname: jg-cap-srv-fiori-${org}-${space}
-        tenant-mode: dedicated
+  - builder: custom
+    commands:
+    - npm ci
+    - npx cds build --production
